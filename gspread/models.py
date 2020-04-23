@@ -746,7 +746,6 @@ class Worksheet(object):
         head=1,
         default_blank="",
         allow_underscores_in_numeric_literals=False,
-        numericise_ignore=None
     ):
         """Returns a list of dictionaries, all of them having the contents
             of the spreadsheet with the head row as keys and each of these
@@ -754,7 +753,7 @@ class Worksheet(object):
             as values.
 
             Cell values are numericised (strings that can be read as ints
-            or floats are converted), unless specificed in numericise_ignore
+            or floats are converted).
 
             :param empty2zero: (optional) Determines whether empty cells are
                                converted to zeros.
@@ -770,10 +769,6 @@ class Worksheet(object):
                                                           in numeric literals,
                                                           as introduced in PEP 515
             :type allow_underscores_in_numeric_literals: bool
-            :param numericise_ignore: list of ints of indices of the row (starting at 1)
-                                      to ignore numericising, special use of ['all']
-                                      to ignore numericising on all columns.
-            :type numericise_ignore: list
             """
 
         idx = head - 1
@@ -785,21 +780,15 @@ class Worksheet(object):
             return []
 
         keys = data[idx]
-
-        if numericise_ignore == ['all']:
-            values = data[idx + 1:]
-        else:
-            values = [
-                numericise_all(
-                    row,
-                    empty2zero,
-                    default_blank,
-                    allow_underscores_in_numeric_literals,
-                    numericise_ignore
-                )
-                for row in data[idx + 1:]
-            ]
-
+        values = [
+            numericise_all(
+                row,
+                empty2zero,
+                default_blank,
+                allow_underscores_in_numeric_literals,
+            )
+            for row in data[idx + 1:]
+        ]
 
         return [dict(zip(keys, row)) for row in values]
 
@@ -1557,109 +1546,19 @@ class Worksheet(object):
         return data
 
     def delete_row(self, index):
-        """Deletes the row from the worksheet at the specified index.
+        """"Deletes the row from the worksheet at the specified index.
 
         :param index: Index of a row for deletion.
         :type index: int
         """
-        import warnings
-        warnings.warn(
-            "Worksheet.delete_row() is deprecated, "
-            "Please use `Worksheet.delete_rows()` instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        return self.delete_rows(index)
-
-    @cast_to_a1_notation
-    def add_protected_range(
-        self,
-        name,
-        editors_emails=None,
-        description=None,
-        requesting_user_can_edit=False
-    ):
-        """"Add protected range to the sheet. Only the editors can edit
-        the protected range.
-
-        :param name: A string with range value in A1 notation, e.g. 'A1:A5'.
-        :type name: str
-
-        Alternatively, you may specify numeric boundaries. All values
-        index from 1 (one):
-
-        :param first_row: Row number
-        :type first_row: int
-        :param first_col: Row number
-        :type first_col: int
-        :param last_row: Row number
-        :type last_row: int
-        :param last_col: Row number
-        :type last_col: int
-
-        :param editors_emails: List for more editors email
-        :type editors_emails: list
-        :param description: description for the protected ranges
-        :type description: str
-        :param requesting_user_can_edit: True if the user who requested this
-                                         protected range can edit the protected
-                                         cells.
-        :type requesting_user_can_edit: boolean
-        """
-
-        email_address = [permission.get('emailAddress') for permission in self.client.list_permissions(self.spreadsheet.id) if permission.get('emailAddress')]
-
-        editors_emails = editors_emails or []
-        email_address.extend(email for email in editors_emails)
-
-        start, end = name.split(':')
-        (row_offset, column_offset) = a1_to_rowcol(start)
-        (last_row, last_column) = a1_to_rowcol(end)
-
-        body = {
-            "requests": [{
-                "addProtectedRange": {
-                    'protectedRange': {
-                        "range": {
-                            "sheetId": self.id,
-                            "startRowIndex": row_offset,
-                            "endRowIndex": last_row,
-                            "startColumnIndex": column_offset,
-                            "endColumnIndex": last_column
-                        },
-                        "description": description,
-                        "warningOnly": False,
-                        "requestingUserCanEdit": requesting_user_can_edit,
-                        "editors": {
-                            "users": email_address
-                        }
-                    }
-                }
-            }]
-        }
-
-        return self.spreadsheet.batch_update(body)
-
-    def delete_dimension(self, dimension, start_index, end_index=None):
-        """Deletes multi rows from the worksheet at the specified index.
-
-        :param str dimension: A dimension to delete. "ROWS" or "COLUMNS".
-        :param int start_index: Index of a first row for deletion.
-        :param int end_index: Index of a last row for deletion.
-                              When end_index is not specified this method
-                              only deletes a single row at ``start_index``.
-        """
-        if end_index is None:
-            end_index = start_index
-
         body = {
             "requests": [{
                 "deleteDimension": {
                     "range": {
                       "sheetId": self.id,
-                      "dimension": dimension,
-                      "startIndex": start_index - 1,
-                      "endIndex": end_index
+                      "dimension": "ROWS",
+                      "startIndex": index - 1,
+                      "endIndex": index
                     }
                 }
             }]
@@ -1667,34 +1566,27 @@ class Worksheet(object):
 
         return self.spreadsheet.batch_update(body)
 
-    def delete_rows(self, start_index, end_index=None):
-        """Deletes multi rows from the worksheet at the specified index.
+    def delete_rows(self, start_index, end_index):
+        """"Deletes multi rows from the worksheet at the specified index.
 
-        :param int start_index: Index of a first row for deletion.
-        :param int end_index: Index of a last row for deletion.
-                              When end_index is not specified this method
-                              only deletes a single row at ``start_index``.
-
-        Example::
-
-            # Delete rows 5 to 10 (inclusive)
-            worksheet.delete_rows(5, 10)
-
-            # Delete only the second row
-            worksheet.delete_rows(2)
-
+        :param start_index: Index of a first row for deletion.
+        :param end_index: Index of a last row for deletion.
+        :type index: int
         """
-        return self.delete_dimension('ROWS', start_index, end_index)
+        body = {
+            "requests": [{
+                "deleteDimension": {
+                    "range": {
+                      "sheetId": self.id,
+                      "dimension": "ROWS",
+                      "startIndex": start_index - 1,
+                      "endIndex": end_index - 1
+                    }
+                }
+            }]
+        }
 
-    def delete_columns(self, start_index, end_index=None):
-        """Deletes multi columns from the worksheet at the specified index.
-
-        :param int start_index: Index of a first column for deletion.
-        :param int end_index: Index of a last column for deletion.
-                              When end_index is not specified this method
-                              only deletes a single column at ``start_index``.
-        """
-        return self.delete_dimension('COLUMNS', start_index, end_index)
+        return self.spreadsheet.batch_update(body)
 
     def clear(self):
         """Clears all cells in the worksheet.
@@ -1703,7 +1595,8 @@ class Worksheet(object):
             absolute_range_name(self.title)
         )
 
-    def _finder(self, func, query, col, row):
+    def _finder(self, func, query):
+
         data = self.spreadsheet.values_get(absolute_range_name(self.title))
 
         try:
@@ -1711,7 +1604,11 @@ class Worksheet(object):
         except KeyError:
             values = []
 
-        cells = self._get_selected_cells(values, col, row)
+        cells = [
+            Cell(row=i + 1, col=j + 1, value=value)
+            for i, row in enumerate(values)
+            for j, value in enumerate(row)
+        ]
 
         if isinstance(query, basestring):
             match = lambda x: x.value == query
@@ -1720,32 +1617,7 @@ class Worksheet(object):
 
         return func(match, cells)
 
-    def _get_selected_cells(self, values, col, row):
-        """ Returns an array of cell objects.
-        :param values: Array with row, colums and values
-        :param col: Number of colum to find
-        :param row: Number of row to find
-        """
-        if col and row: raise TypeError("Either 'rows' or 'cols' should be specified.")
-
-        if col:
-            return [
-                Cell(row=i + 1, col=col, value=row[col])
-                for i, row in enumerate(values)
-            ]
-        elif row:
-            return [
-                Cell(row=row, col=j + 1, value=value)
-                for j, value in enumerate(row)
-            ]
-        else:
-            return [
-                Cell(row=i + 1, col=j + 1, value=value)
-                for i, row in enumerate(values)
-                for j, value in enumerate(row)
-            ]
-
-    def find(self, query, col=None, row=None):
+    def find(self, query):
         """Finds the first cell matching the query.
 
         :param query: A literal string to match or compiled regular expression.
@@ -1753,7 +1625,7 @@ class Worksheet(object):
 
         """
         try:
-            return self._finder(finditem, query, col, row)
+            return self._finder(finditem, query)
         except StopIteration:
             raise CellNotFound(query)
 
@@ -1990,11 +1862,6 @@ class Cell(object):
             return float(self.value)
         except ValueError:
             return None
-
-    @property
-    def address(self):
-        """Cell address in A1 notation."""
-        return rowcol_to_a1(self.row, self.col)
 
     @property
     def input_value(self):

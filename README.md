@@ -42,6 +42,10 @@ wks.update('B42', "it's down there somewhere, let me take another look.")
 wks.format('A1:B1', {'textFormat': {'bold': True}})
 ```
 
+## Custom authorize
+
+gc = gspread.authorizeByToken(access_token)
+
 ## More Examples
 
 ### Opening a Spreadsheet

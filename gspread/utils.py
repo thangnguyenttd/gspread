@@ -18,10 +18,13 @@ except ImportError:
     from collections import Sequence
 from itertools import chain
 
-from google.auth.credentials import Credentials as Credentials
-from google.oauth2.credentials import Credentials as UserCredentials
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
-
+try:
+    from google.auth.credentials import Credentials as Credentials
+    from google.oauth2.credentials import Credentials as UserCredentials
+    from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+except Exception:
+    pass
+    
 from .exceptions import IncorrectCellLabel, NoValidUrlKeyFound
 
 if sys.version_info.major == 2:
@@ -145,22 +148,10 @@ def numericise(value, empty2zero=False, default_blank="", allow_underscores_in_n
 
     return value
 
-def numericise_all(input, empty2zero=False, default_blank="", allow_underscores_in_numeric_literals=False,
-                   ignore=None):
-    """
-    Returns a list of numericised values from strings except those
-    from the row specified as ignore
-    :param input: list row
-    :param empty2zero: bool indicating whether or not to return empty cells as 0, default False
-    :param default_blank: str determining which value to use for blank cells, default empty str
-    :param allow_underscores_in_numeric_literals: bool indicating whether or not to allow visual underscores
-                                                  in numeric literals
-    :param ignore: list of ints of indices of the row (index 1) to ignore numericising
-    """
-    ignored_rows = [input[x-1] for x in (ignore or [])]
-    numericised_list = [s if s in ignored_rows else numericise(s, empty2zero=empty2zero, default_blank=default_blank,
-                          allow_underscores_in_numeric_literals=allow_underscores_in_numeric_literals) for s in input]
-    return numericised_list
+
+def numericise_all(input, empty2zero=False, default_blank="", allow_underscores_in_numeric_literals=False):
+    """Returns a list of numericised values from strings"""
+    return [numericise(s, empty2zero, default_blank, allow_underscores_in_numeric_literals) for s in input]
 
 
 def rowcol_to_a1(row, col):
