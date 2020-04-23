@@ -44,7 +44,9 @@ wks.format('A1:B1', {'textFormat': {'bold': True}})
 
 ## Custom authorize
 
+```
 gc = gspread.authorizeByToken(access_token)
+```
 
 ## More Examples
 
