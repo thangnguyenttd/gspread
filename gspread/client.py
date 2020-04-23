@@ -174,7 +174,7 @@ class Client(object):
 					url=endpoint,
 					payload=payload,
 					method=urlfetch_method,
-					dealine=30,
+					dealine=60,
 					headers=headers)
 				# logging.warn(result)
 				# logging.warn(result.status_code)
