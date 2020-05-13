@@ -29,7 +29,6 @@ from google.appengine.api import urlfetch
 import logging
 import json
 
-
 class ConvertResponse():
 	response = None
 	
@@ -73,11 +72,13 @@ class Client(object):
 	
 	access_token = None
 	headers = None
+	quotaUser = None
 	
-	def __init__(self, auth=None, session=None, access_token=None):
+	def __init__(self, auth=None, session=None, access_token=None, quotaUser=None):
 		if access_token is not None:
 			self.access_token = access_token
 			self.headers = {"Authorization": "Bearer %s" % access_token}
+			self.quotaUser = quotaUser
 		else:
 			self.auth = convert_credentials(auth)
 			self.session = session or AuthorizedSession(self.auth)
@@ -147,7 +148,15 @@ class Client(object):
 					payload = self.dumps(data)
 				if json is not None:
 					payload = self.dumps(json)
-			
+
+			# logging.info(self.quotaUser)
+			# logging.info(endpoint)
+			if self.quotaUser is not None:
+				if endpoint.find('?') > -1:
+					endpoint += '&quotaUser=' + urllib.quote_plus(unicode(self.quotaUser).encode('utf-8'))
+				else:
+					endpoint += '?quotaUser=' + urllib.quote_plus(unicode(self.quotaUser).encode('utf-8'))
+			# logging.info(endpoint)
 			# req = urllib2.Request(endpoint, data, headers=self.headers)
 			# try:
 			# 	response = urllib2.urlopen(req)
@@ -174,7 +183,7 @@ class Client(object):
 					url=endpoint,
 					payload=payload,
 					method=urlfetch_method,
-					dealine=60,
+					deadline=300,
 					headers=headers)
 				# logging.warn(result)
 				# logging.warn(result.status_code)

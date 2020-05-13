@@ -39,7 +39,7 @@ def authorize(credentials, client_class=Client):
     client = client_class(auth=credentials)
     return client
 
-def authorizeByToken(access_token, client_class=Client):
+def authorizeByToken(access_token, quotaUser=None, client_class=Client):
     """Fetch data to Google API using Access token Oauth2.
     This is a shortcut function which
     instantiates `client_class`.
@@ -47,6 +47,5 @@ def authorizeByToken(access_token, client_class=Client):
 
     :returns: `client_class` instance.
     """
-
-    client = client_class(access_token=access_token)
+    client = client_class(access_token=access_token, quotaUser=quotaUser)
     return client
