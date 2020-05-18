@@ -208,12 +208,16 @@ class Client(object):
 			# 		'status': error['error']['status'],
 			# 		'error_message': 'Caught exception fetching url'
 			# 	})))
-			except urlfetch.Error:
+			# except urlfetch.Error:
+			except BaseException, e:
 				logging.exception('Caught exception fetching url')
 				# return 'Caught exception fetching url'
 				raise APIError(ConvertResponse(self.encode({
-					'status_code': 500,
-					'error_message': 'Caught exception fetching url'
+					'error': {
+						'status': 'INTENAL_SERVER_ERROR',
+						'code': 500,
+						'message': e.message
+					}
 				})))
 		# except DeadlineExceededError as e:
 		# 	logging.exception(e)
